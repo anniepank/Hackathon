@@ -150,10 +150,12 @@ def main():
         full_df = get_data(train_spreadsheet_id)
 
     with timing('Processing data'):
+        full_df['Fired'] = [False] * len(full_df)
         #filtered = pd.read_csv('/home/syslink/Documents/Hackathon/filtered.csv')
         filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
         filtered.to_csv('/home/syslink/Documents/Hackathon/filtered.csv')
-
+        df_test = get_data(test_spreadsheet_id)
+        id_list = df_test['Emp_ID'].tolist()
         # scaling data 
 
         sc = StandardScaler()
@@ -161,7 +163,11 @@ def main():
         filtered[features_to_scale] = sc.fit_transform(filtered[features_to_scale])
 
         X, val = split_train_test_emps(filtered)
+        val = extract_employee_features(
+                full_df[full_df['Emp_ID'].isin(id_list)]
+            )
 
+        val[features_to_scale] = sc.transform(val[features_to_scale])
         # removing not used for training data
 
         y = list(X['Fired'])
