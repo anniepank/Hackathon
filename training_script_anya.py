@@ -13,14 +13,16 @@ import math
 import sklearn
 
 from xgboost import XGBClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, roc_curve, roc_auc_score
-
+from sklearn.svm import SVC
 from utils import timing
 
 train_spreadsheet_id = '1OdjccfGlv3lsuiWgIAHbE8id91FpVaU2EsaZo5kknaA'
@@ -195,13 +197,13 @@ def main():
         filtered = filtered.drop('Salary changed', axis=1)
         filtered = filtered.drop('Salary', axis=1)
         filtered = filtered.drop('Total Business Value All', axis=1)
-        filtered = filtered.drop('Overvalue', axis=1)
-        #iltered = filtered.drop('Designation', axis=1)
-        #filtered = filtered.drop('Age', axis=1)
+        #filtered = filtered.drop('Overvalue', axis=1)
+        #filtered = filtered.drop('Designation', axis=1)
+        filtered = filtered.drop('Age', axis=1)
         filtered = filtered.drop('Gender', axis=1)
         #filtered = filtered.drop('Education_Level', axis=1)
-        #filtered = filtered.drop('Quarterly Rating', axis=1)
-        #filtered = filtered.drop('Work Experience', axis=1)
+        # filtered = filtered.drop('Quarterly Rating', axis=1)
+        filtered = filtered.drop('Work Experience', axis=1)
         df_test = get_data(test_spreadsheet_id)
         id_list = df_test['Emp_ID'].tolist()
         # scaling data 
@@ -244,7 +246,12 @@ def main():
 
     #clf = XGBClassifier()
     #clf.fit(X_train, y_train) 
-    #clf = RandomForestClassifier(warm_start=True, n_estimators=90) # 
+    #clf = RandomForestClassifier(warm_start=True, n_estimators=20) # 
+    #clf = LogisticRegression()
+    #clf = KNeighborsClassifier()
+    #clf = GradientBoostingClassifier()
+    #clf = DecisionTreeClassifier()
+    #clf = SVC()
     clf = MLPClassifier(hidden_layer_sizes=50, solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=300)
     clf.fit(X_train, y_train)
     pred = clf.predict(X_test)
