@@ -194,9 +194,9 @@ def main():
         full_df['Fired'] = [False] * len(full_df)
         full_df = full_df[~full_df['Emp_ID'].isin(bad_ids)]
 
-        #filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
+        filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
 
-        filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
+        # filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
 
         #filtered_fired = iterate_through_set(full_df, 2, 2016, 12, 2017)
         #filtered_fired = filtered_fired[filtered_fired['Fired'] == True]
@@ -204,7 +204,7 @@ def main():
         #filtered_not_fired = filtered_not_fired[filtered_not_fired['Fired'] == False]
         #filtered = pd.concat([filtered_fired, filtered_not_fired])
 
-        filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
+        #filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
         
         filtered = filtered.drop('Salary Change', axis=1)
         #filtered = filtered.drop('Salary Average', axis=1)
@@ -218,7 +218,7 @@ def main():
         #filtered = filtered.drop('Education_Level', axis=1)
         # filtered = filtered.drop('Quarterly Rating', axis=1)
         filtered = filtered.drop('Work Experience', axis=1)
-        #filtered = filtered.drop('Cluster', axis=1)
+        filtered = filtered.drop('Cluster', axis=1)
 
         df_test = get_data(test_spreadsheet_id)
         id_list = df_test['Emp_ID'].tolist()
@@ -268,8 +268,47 @@ def main():
     #clf = GradientBoostingClassifier()
     #clf = DecisionTreeClassifier()
     #clf = SVC()
-    clf = MLPClassifier(hidden_layer_sizes=50, solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=300)
+    #clf = MLPClassifier(hidden_layer_sizes=50, solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=300)
+    #clf.fit(X_train, y_train)
+    
+    from sklearn.datasets import make_classification
+    from tensorflow import keras
+    from tensorflow.keras.layers import Dense, Dropout
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+
+
+    X, y = make_classification(
+        n_samples=len(X_train), n_features=6, n_classes=2, n_informative=3, random_state=0
+    )
+
+
+    def build_fn(optimizer):
+        model = Sequential()
+        model.add(
+            Dense(200, input_dim=6, kernel_initializer="he_normal", activation="relu")
+        )
+        model.add(Dense(100, kernel_initializer="he_normal", activation="relu"))
+        model.add(Dropout(0.2))
+        model.add(Dense(100, kernel_initializer="he_normal", activation="relu"))
+        model.add(Dropout(0.2))
+        model.add(Dense(20, kernel_initializer="he_normal", activation="relu"))
+        model.add(Dense(2, kernel_initializer="he_normal", activation="softmax"))
+        model.compile(
+            loss="categorical_crossentropy",
+            optimizer=optimizer,
+            metrics=[
+                keras.metrics.Precision(name="precision"),
+                keras.metrics.Recall(name="recall"),
+                keras.metrics.AUC(name="auc"),
+            ],
+        )
+        return model
+
+
+    clf = KerasClassifier(build_fn, optimizer="adam", epochs=30, batch_size=1)
     clf.fit(X_train, y_train)
+
     pred = clf.predict(X_test)
 
     cm = confusion_matrix(y_test, pred)
