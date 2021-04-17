@@ -161,13 +161,16 @@ def main():
         #filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
         #filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
         filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
-        filtered = filtered.drop('Salary Change', axis=1)
-        filtered = filtered.drop('Salary changed', axis=1)
+        #filtered = filtered.drop('Salary Change', axis=1)
         #filtered = filtered.drop('Salary Average', axis=1)
-        filtered = filtered.drop('Designation', axis=1)
-        #filtered = filtered.drop('Work Experience', axis=1)
-        filtered = filtered.drop('Age', axis=1)
+        filtered = filtered.drop('Salary changed', axis=1)
+        #filtered = filtered.drop('Salary', axis=1)
         filtered = filtered.drop('Total Business Value All', axis=1)
+        #filtered = filtered.drop('Overvalue', axis=1)
+        #iltered = filtered.drop('Designation', axis=1)
+        #filtered = filtered.drop('Age', axis=1)
+        #filtered = filtered.drop('Quarterly Rating', axis=1)
+        #filtered = filtered.drop('Work Experience', axis=1)
         df_test = get_data(test_spreadsheet_id)
         id_list = df_test['Emp_ID'].tolist()
         # scaling data 
@@ -207,10 +210,10 @@ def main():
     print("Fired percent employees in train: ", len([x for x in y_train if x == 1]) / len(X_train) * 100)  #4794
     print("Fired percent employees in test: ", len([x for x in y_test if x == 1]) / len(y_test) * 100)  #0
 
-    #clf = XGBClassifier()
-    #clf.fit(X_train, y_train) 
+    clf = XGBClassifier()
+    clf.fit(X_train, y_train) 
     #clf = RandomForestClassifier(warm_start=True, n_estimators=90) # 
-    clf = MLPClassifier(solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=500)
+    #clf = MLPClassifier(solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=500)
     clf.fit(X_train, y_train)
     pred = clf.predict(X_test)
     cm = confusion_matrix(y_test, pred)
