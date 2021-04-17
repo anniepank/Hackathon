@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Tuple
 from imblearn.over_sampling import RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
 
 import numpy as np
 import pandas as pd
@@ -84,6 +85,10 @@ def extract_employee_features(df):
 
     employee_features = {}
     for employee_df in eployee_dfs:
+        #- ----
+        #employee_df = employee_df.iloc[-6:].copy()
+        #-----
+        
         id = employee_df.iloc[0]['Emp_ID']
         employee_features[id] = {}
         employee_features[id]['Salary Change'] = (employee_df['Salary'].max() - employee_df['Salary'].min()) / employee_df['Salary'].min()
@@ -123,7 +128,7 @@ def filter_data(df, end_date):
 
 def filter_dataset(df, date):
     before = df[df['MMM-YY'] < date].copy()
-    print(type(before))
+
     before['Fired'] = [False] * len(before)
     
     after = df[df['MMM-YY'] > date]
@@ -153,6 +158,7 @@ def month_year_iter( start_month, start_year, end_month, end_year ):
 def iterate_through_set(df, start_month, start_year, end_month, end_year):
     result = []
     for year, month in month_year_iter(start_month, start_year, end_month, end_year):
+        print('.',end='')
         result.append(
             extract_employee_features(
                 filter_dataset(df, "%04i-%02i-00" % (year, month))
@@ -172,9 +178,17 @@ def main():
         full_df['Fired'] = [False] * len(full_df)
         full_df = full_df[~full_df['Emp_ID'].isin(bad_ids)]
 
-        #filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
-        #filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
         filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
+
+        #filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
+
+        #filtered_fired = iterate_through_set(full_df, 2, 2016, 12, 2017)
+        #filtered_fired = filtered_fired[filtered_fired['Fired'] == True]
+        #filtered_not_fired = iterate_through_set(full_df, 2, 2016, 6, 2017)
+        #filtered_not_fired = filtered_not_fired[filtered_not_fired['Fired'] == False]
+        #filtered = pd.concat([filtered_fired, filtered_not_fired])
+
+        filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
         
         filtered = filtered.drop('Salary Change', axis=1)
         #filtered = filtered.drop('Salary Average', axis=1)
@@ -206,6 +220,7 @@ def main():
         # removing not used for training data
 
         y = list(X['Fired'])
+        print("Fired: ", len(X[X['Fired'] == True]) / len(X))
         X = X.drop('Fired', axis=1)
         X = X.drop('Emp_ID', axis=1)
         X = X.drop('Dateofjoining', axis=1)
@@ -218,7 +233,7 @@ def main():
 
     print("Employees in train before: ", len(X_train))
     print("Employees in test before: ", len(X_test))
-    ros = RandomOverSampler()
+    ros = RandomUnderSampler()
     X_train, y_train = ros.fit_resample(X_train, y_train)
 
     print("Employees in train after: ", len(X_train))
@@ -227,12 +242,13 @@ def main():
     print("Fired percent employees in train: ", len([x for x in y_train if x == 1]) / len(X_train) * 100)  #4794
     print("Fired percent employees in test: ", len([x for x in y_test if x == 1]) / len(y_test) * 100)  #0
 
-    clf = XGBClassifier()
-    clf.fit(X_train, y_train) 
+    #clf = XGBClassifier()
+    #clf.fit(X_train, y_train) 
     #clf = RandomForestClassifier(warm_start=True, n_estimators=90) # 
-    #clf = MLPClassifier(solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=500)
+    clf = MLPClassifier(hidden_layer_sizes=50, solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=300)
     clf.fit(X_train, y_train)
     pred = clf.predict(X_test)
+
     cm = confusion_matrix(y_test, pred)
     print(cm)
     # accuracy score
@@ -248,6 +264,7 @@ def main():
 
     # F1_score
     print('F1:', f1_score(y_test, pred))
+    print('F1 Train:', f1_score(clf.predict(X_train), y_train))
 
     # obtain prediction probabilities
     #pred = clf.predict_proba(X_test)
