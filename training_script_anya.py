@@ -27,13 +27,23 @@ from utils import timing
 
 train_spreadsheet_id = '1OdjccfGlv3lsuiWgIAHbE8id91FpVaU2EsaZo5kknaA'
 test_spreadsheet_id = '1RzcxaIM2nVAsmKydLR1NnjqdJlUC86SAUOeW_L0mJgk'
+clusters_id = '1bmB9IKLjlExwltHSjFKo4tnQ0BRgYh3AHoHvtOzJiBw'
+clusters_amina_id = '15vTEz_TrEtZO-AOT9U1aG8ihOxPSNank89juSxa5KvA'
+clusters_8 = '1IOR13hjqs7swag8pZMhC0sE6GE--UqN3-4woi6SLOJM'
 file_link = 'https://docs.google.com/spreadsheets/d/{}/export?format=csv'
+
 
 
 def get_data(file_id: str) -> pd.DataFrame:
     r = requests.get(file_link.format(file_id))
     return pd.read_csv(BytesIO(r.content))
 
+def get_clusters():
+    r = requests.get(file_link.format(clusters_8))
+    clusters_mapping = pd.read_csv(BytesIO(r.content))
+    return dict(zip(list(clusters_mapping['Emp_ID']), list(clusters_mapping['cluster'])))
+
+clusters_mapping = get_clusters()
 
 def dates_from_strings(df: pd.DataFrame) -> None:
     df.loc[:, 'Dateofjoining'] = pd.to_datetime(df['Dateofjoining'], format='%Y-%m-%d')
@@ -120,6 +130,10 @@ def extract_employee_features(df):
 
         join_day = employee_df[employee_df['Emp_ID'] == id]['Dateofjoining'].iloc[0]
         employee_features[id]['Dateofjoining'] = join_day
+
+
+        employee_features[id]['Cluster'] = clusters_mapping.get(id, 2)
+
     return pd.DataFrame.from_dict(employee_features, orient='index')
     
 
@@ -180,9 +194,9 @@ def main():
         full_df['Fired'] = [False] * len(full_df)
         full_df = full_df[~full_df['Emp_ID'].isin(bad_ids)]
 
-        filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
+        #filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
 
-        #filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
+        filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
 
         #filtered_fired = iterate_through_set(full_df, 2, 2016, 12, 2017)
         #filtered_fired = filtered_fired[filtered_fired['Fired'] == True]
@@ -204,6 +218,8 @@ def main():
         #filtered = filtered.drop('Education_Level', axis=1)
         # filtered = filtered.drop('Quarterly Rating', axis=1)
         filtered = filtered.drop('Work Experience', axis=1)
+        #filtered = filtered.drop('Cluster', axis=1)
+
         df_test = get_data(test_spreadsheet_id)
         id_list = df_test['Emp_ID'].tolist()
         # scaling data 
