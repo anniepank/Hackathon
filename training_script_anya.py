@@ -97,6 +97,15 @@ def extract_employee_features(df):
         employee_features[id]['Emp_ID'] = employee_df.iloc[0]['Emp_ID']
         employee_features[id]['Quarterly Rating'] = employee_df.iloc[-1]['Quarterly Rating']
         employee_features[id]['Designation'] = employee_df.iloc[-1]['Designation']
+        
+        gender_mapping = {'Male': 0, 'Female': 1}
+        
+        employee_features[id]['Gender'] = gender_mapping[employee_df.iloc[-1]['Gender']]
+
+        education_mapping = {'College': 1,'Bachelor':2, 'Master':3}
+
+        employee_features[id]['Education_Level'] = education_mapping[employee_df.iloc[-1]['Education_Level']]
+
 
         last_day = pd.to_datetime(employee_df.iloc[-1]['MMM-YY'], format='%Y-%m-%d')
         first_day = pd.to_datetime(employee_df.iloc[0]['MMM-YY'], format='%Y-%m-%d')
@@ -153,22 +162,30 @@ def iterate_through_set(df, start_month, start_year, end_month, end_year):
        
 
 def main():
+    bad_ids = [264, 1207, 1581, 2397, 66, 383, 612, 743, 755, 770, 920, 1173, 1224, 1339, 1437, 1449, 1454, 1561, 1629, 1663, 1706, 1758, 1893, 1894, 2132, 2268, 2547, 2685]
+
     with timing('Loading data'):
         full_df = get_data(train_spreadsheet_id)
 
     with timing('Processing data'):
+
         full_df['Fired'] = [False] * len(full_df)
+        full_df = full_df[~full_df['Emp_ID'].isin(bad_ids)]
+
         #filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
         #filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
         filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
-        #filtered = filtered.drop('Salary Change', axis=1)
+        
+        filtered = filtered.drop('Salary Change', axis=1)
         #filtered = filtered.drop('Salary Average', axis=1)
         filtered = filtered.drop('Salary changed', axis=1)
-        #filtered = filtered.drop('Salary', axis=1)
+        filtered = filtered.drop('Salary', axis=1)
         filtered = filtered.drop('Total Business Value All', axis=1)
-        #filtered = filtered.drop('Overvalue', axis=1)
+        filtered = filtered.drop('Overvalue', axis=1)
         #iltered = filtered.drop('Designation', axis=1)
         #filtered = filtered.drop('Age', axis=1)
+        filtered = filtered.drop('Gender', axis=1)
+        #filtered = filtered.drop('Education_Level', axis=1)
         #filtered = filtered.drop('Quarterly Rating', axis=1)
         #filtered = filtered.drop('Work Experience', axis=1)
         df_test = get_data(test_spreadsheet_id)
@@ -176,7 +193,7 @@ def main():
         # scaling data 
 
         sc = StandardScaler()
-        features_to_scale = list(set(['Salary', 'Overvalue', 'Salary Change', 'Salary changed', 'Salary Average', 'Age', 'Quarterly Rating', 'Total Business Value All', 'Work Experience', 'Designation']) & set(list(filtered.columns)))
+        features_to_scale = list(set(['Education_Level', 'Salary', 'Overvalue', 'Salary Change', 'Salary changed', 'Salary Average', 'Age', 'Quarterly Rating', 'Total Business Value All', 'Work Experience', 'Designation']) & set(list(filtered.columns)))
         filtered[features_to_scale] = sc.fit_transform(filtered[features_to_scale])
 
         X, val = split_train_test_emps(filtered)
