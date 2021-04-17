@@ -87,13 +87,20 @@ def extract_employee_features(df):
         id = employee_df.iloc[0]['Emp_ID']
         employee_features[id] = {}
         employee_features[id]['Salary Change'] = (employee_df['Salary'].max() - employee_df['Salary'].min()) / employee_df['Salary'].min()
+        employee_features[id]['Salary Average'] = employee_df['Salary'].mean()
         employee_features[id]['Salary changed'] = employee_features[id]['Salary Change'] != 0
+        employee_features[id]['Salary'] = employee_df.iloc[-1]['Salary']
         employee_features[id]['Total Business Value All'] = employee_df['Total Business Value'].sum()
         employee_features[id]['Overvalue'] = (employee_df['Total Business Value'] / employee_df['Salary']).mean()
         employee_features[id]['Fired'] = employee_df.iloc[0]['Fired']
         employee_features[id]['Age'] = employee_df.iloc[0]['Age']
         employee_features[id]['Emp_ID'] = employee_df.iloc[0]['Emp_ID']
         employee_features[id]['Quarterly Rating'] = employee_df.iloc[-1]['Quarterly Rating']
+        employee_features[id]['Designation'] = employee_df.iloc[-1]['Designation']
+
+        last_day = pd.to_datetime(employee_df.iloc[-1]['MMM-YY'], format='%Y-%m-%d')
+        first_day = pd.to_datetime(employee_df.iloc[0]['MMM-YY'], format='%Y-%m-%d')
+        employee_features[id]['Work Experience'] = math.ceil((last_day - first_day) / np.timedelta64(1, 'M'))
 
         join_day = employee_df[employee_df['Emp_ID'] == id]['Dateofjoining'].iloc[0]
         employee_features[id]['Dateofjoining'] = join_day
@@ -151,15 +158,22 @@ def main():
 
     with timing('Processing data'):
         full_df['Fired'] = [False] * len(full_df)
-        #filtered = pd.read_csv('/home/syslink/Documents/Hackathon/filtered.csv')
-        filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
-        filtered.to_csv('/home/syslink/Documents/Hackathon/filtered.csv')
+        #filtered = iterate_through_set(full_df, 2, 2016, 6, 2017)
+        #filtered.to_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
+        filtered = pd.read_pickle('/home/syslink/Documents/Hackathon/filtered.pkl')
+        filtered = filtered.drop('Salary Change', axis=1)
+        filtered = filtered.drop('Salary changed', axis=1)
+        #filtered = filtered.drop('Salary Average', axis=1)
+        filtered = filtered.drop('Designation', axis=1)
+        #filtered = filtered.drop('Work Experience', axis=1)
+        filtered = filtered.drop('Age', axis=1)
+        filtered = filtered.drop('Total Business Value All', axis=1)
         df_test = get_data(test_spreadsheet_id)
         id_list = df_test['Emp_ID'].tolist()
         # scaling data 
 
         sc = StandardScaler()
-        features_to_scale = ['Overvalue', 'Total Business Value All', 'Salary changed', 'Salary Change', 'Age', 'Quarterly Rating']
+        features_to_scale = list(set(['Salary', 'Overvalue', 'Salary Change', 'Salary changed', 'Salary Average', 'Age', 'Quarterly Rating', 'Total Business Value All', 'Work Experience', 'Designation']) & set(list(filtered.columns)))
         filtered[features_to_scale] = sc.fit_transform(filtered[features_to_scale])
 
         X, val = split_train_test_emps(filtered)
@@ -168,6 +182,7 @@ def main():
             )
 
         val[features_to_scale] = sc.transform(val[features_to_scale])
+        val = val[list(filtered.columns)]
         # removing not used for training data
 
         y = list(X['Fired'])
@@ -194,8 +209,8 @@ def main():
 
     #clf = XGBClassifier()
     #clf.fit(X_train, y_train) 
-
-    clf = MLPClassifier(solver='adam', random_state=1, learning_rate='adaptive', shuffle=True, activation='relu', max_iter=1000)
+    #clf = RandomForestClassifier(warm_start=True, n_estimators=90) # 
+    clf = MLPClassifier(solver='adam', learning_rate='adaptive', shuffle=True, activation='relu', max_iter=500)
     clf.fit(X_train, y_train)
     pred = clf.predict(X_test)
     cm = confusion_matrix(y_test, pred)
