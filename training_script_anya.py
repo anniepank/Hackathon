@@ -195,7 +195,7 @@ def main():
         filtered = filtered.drop('Salary Change', axis=1)
         #filtered = filtered.drop('Salary Average', axis=1)
         filtered = filtered.drop('Salary changed', axis=1)
-        filtered = filtered.drop('Salary', axis=1)
+        #filtered = filtered.drop('Salary', axis=1)
         filtered = filtered.drop('Total Business Value All', axis=1)
         #filtered = filtered.drop('Overvalue', axis=1)
         #filtered = filtered.drop('Designation', axis=1)
